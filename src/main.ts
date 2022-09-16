@@ -1,16 +1,17 @@
 import * as core from '@actions/core'
-import {wait} from './wait'
+import {archiveUrl} from './archive'
 
 async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
-    core.debug(`Waiting ${ms} milliseconds ...`) // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
-
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
-
-    core.setOutput('time', new Date().toTimeString())
+    const token = core.getInput('web3_token')
+    const url = core.getInput('url')
+    const endpoint = new URL(core.getInput('web3_api'))
+    const {contentID, title} = await archiveUrl(token, url, endpoint)
+    const ipfsUrl = `https://w3s.link/ipfs/${contentID}`
+    core.info(ipfsUrl)
+    core.setOutput('cid', contentID)
+    core.setOutput('title', title)
+    core.setOutput('url', ipfsUrl)
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }

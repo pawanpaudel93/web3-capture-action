@@ -1,11 +1,17 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'web3 archive action'
+description: 'Save single page html and screenshot of url'
+author: 'pawanpaudel93'
 inputs:
-  milliseconds: # change this
+  web3_token:
+    description: 'API token for web3.storage'
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+  web3_api:
+    description: 'API URL'
+    required: false
+    default: 'https://api.web3.storage'
+  url:
+  description: 'url to save single page html and screenshot for.'
+  required: true
 runs:
   using: 'node16'
   main: 'dist/index.js'
