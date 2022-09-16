@@ -1,16 +1,21 @@
-name: 'build-test'
+name: Test
 on: [workflow_dispatch]
 
 jobs:
-  build: # make sure build/ci work properly
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: |
-          npm install
-      - run: |
-          npm run all
-  test: # make sure the action works on a clean machine without building
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - uses: bahmutov/npm-install@v1
+      - run: npm run lint
+      - run: npm test
+        env:
+          INPUT_WEB3_TOKEN: ${{ secrets.WEB3_STORAGE_TOKEN }}
+
+  run-action:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -18,3 +23,4 @@ jobs:
         with:
           web3_token: ${{ secrets.WEB3_STORAGE_TOKEN }}
           url: 'https://web3.storage'
+          web3_api: 'https://api-staging.web3.storage'

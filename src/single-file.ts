@@ -27,7 +27,7 @@ async function run(options: {
   browserDebug?: boolean
   browserArgs?: string
   browserStartMinimized?: boolean
-  browserCookiesFile: any
+  browserCookiesFile: string
   compressCSS?: undefined
   compressHTML?: undefined
   dumpContent?: boolean
@@ -75,15 +75,15 @@ async function run(options: {
   crawlRemoveURLFragment?: boolean
   insertMetaCSP?: boolean
   httpHeaders?: {}
-  browserCookies: any
+  browserCookies: object
   browserScripts?: never[]
   browserStylesheets?: never[]
   crawlRewriteRules?: never[]
   emulateMediaFeatures?: never[]
   retrieveLinks?: boolean
-  url: any
+  url: string
   output?: string
-  urlsFile: any
+  urlsFile: string
 }): Promise<void> {
   let urls: unknown[]
   if (options.url && !api.VALID_URL_TEST.test(options.url)) {
