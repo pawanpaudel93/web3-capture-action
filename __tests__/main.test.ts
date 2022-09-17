@@ -15,5 +15,7 @@ test('test runs', () => {
     env: process.env
   }
   const output = cp.execFileSync(np, [ip], options).toString()
-  console.log(output)
+  expect(output).toContain(
+    'Web3 Storage - Simple file storage with IPFS & Filecoin'
+  )
 })

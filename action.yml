@@ -10,8 +10,8 @@ inputs:
     required: false
     default: 'https://api.web3.storage'
   url:
-  description: 'url to save single page html and screenshot for.'
-  required: true
+    description: 'url to save single page html and screenshot for.'
+    required: true
 runs:
   using: 'node16'
   main: 'dist/index.js'
