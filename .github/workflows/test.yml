@@ -1,19 +1,25 @@
 name: CI
-on: [workflow_dispatch]
+on: [push]
 jobs:
-  installDependencies:
-    name: Install Dependencies
+  installAndCapture:
+    name: Install Dependencies & Capture
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Install Dependencies
         uses: actions/setup-node@v3
-        env:
-          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: 'true'
-      - run: npm install
-      - name: Test Code
-        uses: mujo-code/puppeteer-headful@v2
-        env:
-          CI: 'true'
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y libgconf-2-4 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 libgbm-dev libnss3-dev libxss-dev libasound2
+      - uses: browser-actions/setup-chrome@latest
         with:
-          args: 'npm run all'
+          chrome-version: stable
+      - run: |
+          npm install
+          npm run build
+          npm run package
+      - uses: ./
+        with:
+          web3_api: 'https://api-staging.web3.storage'
+          web3_token: ${{ secrets.WEB3_STORAGE_TOKEN }}
+          url: 'https://web3.storage'

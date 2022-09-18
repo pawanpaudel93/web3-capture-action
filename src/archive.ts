@@ -1,17 +1,37 @@
 import fsPromises from 'node:fs/promises'
 import {resolve} from 'path'
-
+import * as core from '@actions/core'
 import {directory} from 'tempy'
 import {getFilesFromPath, Web3Storage} from 'web3.storage'
 import {Filelike} from 'web3.storage/src/lib/interface'
 
-import {runBrowser} from './single-file'
+import {execFile} from 'promisify-child-process'
+import which from 'which'
 
 type ReturnType = {
   status: string
   message: string
   contentID: string
   title: string
+}
+
+const SINGLEFILE_EXECUTABLE = './node_modules/single-file-cli/single-file'
+const BROWSER_ARGS =
+  '["--no-sandbox", "--window-size=1920,1080", "--start-maximized"]'
+
+function getBin(commands: string[]): string {
+  let bin = 'chrome'
+  let i: number
+  for (i = 0; i < commands.length; i++) {
+    try {
+      if (which.sync(commands[i])) {
+        bin = commands[i]
+        break
+      }
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
+  }
+  return bin
 }
 
 export const archiveUrl = async (
@@ -21,14 +41,28 @@ export const archiveUrl = async (
 ): Promise<ReturnType> => {
   const tempDirectory = directory()
 
-  await runBrowser({
-    browserArgs:
-      '["--no-sandbox", "--window-size=1920,1080", "--start-maximized"]',
+  const command = [
+    `--browser-executable-path=${getBin([
+      'google-chrome',
+      'google-chrome-stable',
+      'chrome'
+    ])}`,
+    `--browser-args='${BROWSER_ARGS}'`,
     url,
-    basePath: tempDirectory,
-    output: resolve(tempDirectory, 'index.html'),
-    localhost: false
-  })
+    `--output=${resolve(tempDirectory, 'index.html')}`,
+    `--base-path=${tempDirectory}`,
+    `--localhost=${!process.env.AWS_LAMBDA_FUNCTION_VERSION}`
+  ]
+  const {stderr} = await execFile(SINGLEFILE_EXECUTABLE, command)
+  if (stderr) {
+    core.info(stderr.toString())
+    return {
+      status: 'error',
+      message: stderr.toString(),
+      contentID: '',
+      title: ''
+    }
+  }
   const client = new Web3Storage({
     token,
     endpoint

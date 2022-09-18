@@ -6,6 +6,29 @@ require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -22,18 +45,52 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.archiveUrl = void 0;
 const promises_1 = __importDefault(__nccwpck_require__(3977));
 const path_1 = __nccwpck_require__(1017);
+const core = __importStar(__nccwpck_require__(2186));
 const tempy_1 = __nccwpck_require__(4768);
 const web3_storage_1 = __nccwpck_require__(8272);
-const single_file_1 = __nccwpck_require__(9885);
+const promisify_child_process_1 = __nccwpck_require__(6151);
+const which_1 = __importDefault(__nccwpck_require__(4207));
+const SINGLEFILE_EXECUTABLE = './node_modules/single-file-cli/single-file';
+const BROWSER_ARGS = '["--no-sandbox", "--window-size=1920,1080", "--start-maximized"]';
+function getBin(commands) {
+    let bin = 'chrome';
+    let i;
+    for (i = 0; i < commands.length; i++) {
+        try {
+            if (which_1.default.sync(commands[i])) {
+                bin = commands[i];
+                break;
+            }
+            // eslint-disable-next-line no-empty
+        }
+        catch (e) { }
+    }
+    return bin;
+}
 const archiveUrl = (token, url, endpoint) => __awaiter(void 0, void 0, void 0, function* () {
     const tempDirectory = (0, tempy_1.directory)();
-    yield (0, single_file_1.runBrowser)({
-        browserArgs: '["--no-sandbox", "--window-size=1920,1080", "--start-maximized"]',
+    const command = [
+        `--browser-executable-path=${getBin([
+            'google-chrome',
+            'google-chrome-stable',
+            'chrome'
+        ])}`,
+        `--browser-args='${BROWSER_ARGS}'`,
         url,
-        basePath: tempDirectory,
-        output: (0, path_1.resolve)(tempDirectory, 'index.html'),
-        localhost: false
-    });
+        `--output=${(0, path_1.resolve)(tempDirectory, 'index.html')}`,
+        `--base-path=${tempDirectory}`,
+        `--localhost=${!process.env.AWS_LAMBDA_FUNCTION_VERSION}`
+    ];
+    const { stderr } = yield (0, promisify_child_process_1.execFile)(SINGLEFILE_EXECUTABLE, command);
+    if (stderr) {
+        core.info(stderr.toString());
+        return {
+            status: 'error',
+            message: stderr.toString(),
+            contentID: '',
+            title: ''
+        };
+    }
     const client = new web3_storage_1.Web3Storage({
         token,
         endpoint
@@ -119,175 +176,6 @@ function run() {
     });
 }
 run();
-
-
-/***/ }),
-
-/***/ 9885:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.runBrowser = void 0;
-const fs_1 = __importDefault(__nccwpck_require__(7147));
-const file_url_1 = __importDefault(__nccwpck_require__(1589));
-// eslint-disable-next-line import/no-commonjs, @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-const api = __nccwpck_require__(8733);
-function run(options) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let urls;
-        if (options.url && !api.VALID_URL_TEST.test(options.url)) {
-            options.url = (0, file_url_1.default)(options.url);
-        }
-        if (options.urlsFile) {
-            urls = fs_1.default.readFileSync(options.urlsFile).toString().split('\n');
-        }
-        else {
-            urls = [options.url];
-        }
-        if (options.browserCookiesFile) {
-            const cookiesContent = fs_1.default
-                .readFileSync(options.browserCookiesFile)
-                .toString();
-            try {
-                options.browserCookies = JSON.parse(cookiesContent);
-            }
-            catch (error) {
-                options.browserCookies = parseCookies(cookiesContent);
-            }
-        }
-        const singlefile = yield api.initialize(options);
-        yield singlefile.capture(urls);
-        yield singlefile.finish();
-    });
-}
-function parseCookies(textValue) {
-    const httpOnlyRegExp = /^#HttpOnly_(.*)/;
-    return textValue
-        .split(/\r\n|\n/)
-        .filter((line) => line.trim() && (!line.startsWith('#') || httpOnlyRegExp.test(line)))
-        .map((line) => {
-        const httpOnly = httpOnlyRegExp.test(line);
-        if (httpOnly) {
-            line = line.replace(httpOnlyRegExp, '$1');
-        }
-        const values = line.split(/\t/);
-        if (values.length === 7) {
-            return {
-                domain: values[0],
-                path: values[2],
-                secure: values[3] === 'TRUE',
-                expires: (values[4] && Number(values[4])) || undefined,
-                name: values[5],
-                value: values[6],
-                httpOnly
-            };
-        }
-        return undefined;
-    })
-        .filter((cookieData) => cookieData);
-}
-function runBrowser({ basePath, browserArgs, url, output, localhost }) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const args = {
-            acceptHeaders: {
-                font: 'application/font-woff2;q=1.0,application/font-woff;q=0.9,*/*;q=0.8',
-                image: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-                stylesheet: 'text/css,*/*;q=0.1',
-                script: '*/*',
-                document: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-            },
-            backEnd: 'puppeteer',
-            basePath,
-            blockMixedContent: false,
-            browserServer: '',
-            browserHeadless: true,
-            browserExecutablePath: process.env.PUPPETEER_EXEC_PATH,
-            browserWidth: 1280,
-            browserHeight: 720,
-            browserLoadMaxTime: 60000,
-            browserWaitDelay: 0,
-            browserWaitUntil: 'networkidle0',
-            browserWaitUntilFallback: true,
-            browserDebug: false,
-            browserArgs,
-            browserStartMinimized: false,
-            browserCookiesFile: '',
-            compressCSS: undefined,
-            compressHTML: undefined,
-            dumpContent: false,
-            filenameTemplate: '{page-title} ({date-iso} {time-locale}).html',
-            filenameConflictAction: 'uniquify',
-            filenameReplacementCharacter: '_',
-            filenameMaxLength: 192,
-            filenameMaxLengthUnit: 'bytes',
-            groupDuplicateImages: true,
-            maxSizeDuplicateImages: 524288,
-            includeInfobar: false,
-            insertMetaCsp: true,
-            loadDeferredImages: true,
-            loadDeferredImagesDispatchScrollEvent: false,
-            loadDeferredImagesMaxIdleTime: 1500,
-            loadDeferredImagesKeepZoomLevel: false,
-            maxParallelWorkers: 8,
-            maxResourceSizeEnabled: false,
-            maxResourceSize: 10,
-            moveStylesInHead: false,
-            outputDirectory: '',
-            removeHiddenElements: true,
-            removeUnusedStyles: true,
-            removeUnusedFonts: true,
-            removeFrames: false,
-            blockScripts: true,
-            blockAudios: true,
-            blockVideos: true,
-            removeAlternativeFonts: true,
-            removeAlternativeMedias: true,
-            removeAlternativeImages: true,
-            saveOriginalUrls: false,
-            saveRawPage: false,
-            webDriverExecutablePath: '',
-            userScriptEnabled: true,
-            includeBOM: undefined,
-            crawlLinks: false,
-            crawlInnerLinksOnly: true,
-            crawlRemoveUrlFragment: true,
-            crawlMaxDepth: 1,
-            crawlExternalLinksMaxDepth: 1,
-            crawlReplaceUrls: false,
-            backgroundSave: true,
-            crawlReplaceURLs: false,
-            crawlRemoveURLFragment: true,
-            insertMetaCSP: true,
-            httpHeaders: {},
-            browserCookies: [],
-            browserScripts: [],
-            browserStylesheets: [],
-            crawlRewriteRules: [],
-            emulateMediaFeatures: [],
-            retrieveLinks: true,
-            localhost,
-            url,
-            output,
-            urlsFile: ''
-        };
-        yield run(args);
-    });
-}
-exports.runBrowser = runBrowser;
 
 
 /***/ }),
@@ -12838,44 +12726,6 @@ module.exports.promise = queueAsPromised
 
 /***/ }),
 
-/***/ 1589:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-const path = __nccwpck_require__(1017);
-
-module.exports = (filePath, options) => {
-	if (typeof filePath !== 'string') {
-		throw new TypeError(`Expected a string, got ${typeof filePath}`);
-	}
-
-	options = {
-		resolve: true,
-		...options
-	};
-
-	let pathName = filePath;
-
-	if (options.resolve) {
-		pathName = path.resolve(filePath);
-	}
-
-	pathName = pathName.replace(/\\/g, '/');
-
-	// Windows drive letter must be prefixed with a slash
-	if (pathName[0] !== '/') {
-		pathName = `/${pathName}`;
-	}
-
-	// Escape required characters for path components
-	// See: https://tools.ietf.org/html/rfc3986#section-3.3
-	return encodeURI(`file://${pathName}`).replace(/[?#]/g, encodeURIComponent);
-};
-
-
-/***/ }),
-
 /***/ 5090:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
@@ -21622,6 +21472,167 @@ isStream.transform = stream =>
 	typeof stream._transform === 'function';
 
 module.exports = isStream;
+
+
+/***/ }),
+
+/***/ 7126:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+var fs = __nccwpck_require__(7147)
+var core
+if (process.platform === 'win32' || global.TESTING_WINDOWS) {
+  core = __nccwpck_require__(2001)
+} else {
+  core = __nccwpck_require__(9728)
+}
+
+module.exports = isexe
+isexe.sync = sync
+
+function isexe (path, options, cb) {
+  if (typeof options === 'function') {
+    cb = options
+    options = {}
+  }
+
+  if (!cb) {
+    if (typeof Promise !== 'function') {
+      throw new TypeError('callback not provided')
+    }
+
+    return new Promise(function (resolve, reject) {
+      isexe(path, options || {}, function (er, is) {
+        if (er) {
+          reject(er)
+        } else {
+          resolve(is)
+        }
+      })
+    })
+  }
+
+  core(path, options || {}, function (er, is) {
+    // ignore EACCES because that just means we aren't allowed to run it
+    if (er) {
+      if (er.code === 'EACCES' || options && options.ignoreErrors) {
+        er = null
+        is = false
+      }
+    }
+    cb(er, is)
+  })
+}
+
+function sync (path, options) {
+  // my kingdom for a filtered catch
+  try {
+    return core.sync(path, options || {})
+  } catch (er) {
+    if (options && options.ignoreErrors || er.code === 'EACCES') {
+      return false
+    } else {
+      throw er
+    }
+  }
+}
+
+
+/***/ }),
+
+/***/ 9728:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+module.exports = isexe
+isexe.sync = sync
+
+var fs = __nccwpck_require__(7147)
+
+function isexe (path, options, cb) {
+  fs.stat(path, function (er, stat) {
+    cb(er, er ? false : checkStat(stat, options))
+  })
+}
+
+function sync (path, options) {
+  return checkStat(fs.statSync(path), options)
+}
+
+function checkStat (stat, options) {
+  return stat.isFile() && checkMode(stat, options)
+}
+
+function checkMode (stat, options) {
+  var mod = stat.mode
+  var uid = stat.uid
+  var gid = stat.gid
+
+  var myUid = options.uid !== undefined ?
+    options.uid : process.getuid && process.getuid()
+  var myGid = options.gid !== undefined ?
+    options.gid : process.getgid && process.getgid()
+
+  var u = parseInt('100', 8)
+  var g = parseInt('010', 8)
+  var o = parseInt('001', 8)
+  var ug = u | g
+
+  var ret = (mod & o) ||
+    (mod & g) && gid === myGid ||
+    (mod & u) && uid === myUid ||
+    (mod & ug) && myUid === 0
+
+  return ret
+}
+
+
+/***/ }),
+
+/***/ 2001:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+module.exports = isexe
+isexe.sync = sync
+
+var fs = __nccwpck_require__(7147)
+
+function checkPathExt (path, options) {
+  var pathext = options.pathExt !== undefined ?
+    options.pathExt : process.env.PATHEXT
+
+  if (!pathext) {
+    return true
+  }
+
+  pathext = pathext.split(';')
+  if (pathext.indexOf('') !== -1) {
+    return true
+  }
+  for (var i = 0; i < pathext.length; i++) {
+    var p = pathext[i].toLowerCase()
+    if (p && path.substr(-p.length).toLowerCase() === p) {
+      return true
+    }
+  }
+  return false
+}
+
+function checkStat (stat, path, options) {
+  if (!stat.isSymbolicLink() && !stat.isFile()) {
+    return false
+  }
+  return checkPathExt(path, options)
+}
+
+function isexe (path, options, cb) {
+  fs.stat(path, function (er, stat) {
+    cb(er, er ? false : checkStat(stat, path, options))
+  })
+}
+
+function sync (path, options) {
+  return checkStat(fs.statSync(path), path, options)
+}
 
 
 /***/ }),
@@ -31334,440 +31345,6 @@ function runParallel (tasks, cb) {
 
 /***/ }),
 
-/***/ 8465:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-/*
- * Copyright 2010-2020 Gildas Lormeau
- * contact : gildas.lormeau <at> gmail.com
- * 
- * This file is part of SingleFile.
- *
- *   The code in this file is free software: you can redistribute it and/or 
- *   modify it under the terms of the GNU Affero General Public License 
- *   (GNU AGPL) as published by the Free Software Foundation, either version 3
- *   of the License, or (at your option) any later version.
- * 
- *   The code in this file is distributed in the hope that it will be useful, 
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of 
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero 
- *   General Public License for more details.
- *
- *   As additional permission under GNU AGPL version 3 section 7, you may 
- *   distribute UNMODIFIED VERSIONS OF THIS file without the copy of the GNU 
- *   AGPL normally required by section 4, provided you include this license 
- *   notice and a URL through which recipients can access the Corresponding 
- *   Source.
- */
-
-/* global require, exports, singlefile, XMLHttpRequest */
-
-const fs = __nccwpck_require__(7147);
-
-const SCRIPTS = [
-	"lib/single-file.js",
-	"lib/single-file-bootstrap.js",
-	"lib/single-file-hooks-frames.js"
-];
-
-const basePath = "./../../";
-
-function initSingleFile() {
-	singlefile.init({
-		fetch: (url, options) => {
-			return new Promise(function (resolve, reject) {
-				const xhrRequest = new XMLHttpRequest();
-				xhrRequest.withCredentials = true;
-				xhrRequest.responseType = "arraybuffer";
-				xhrRequest.onerror = event => reject(new Error(event.detail));
-				xhrRequest.onabort = () => reject(new Error("aborted"));
-				xhrRequest.onreadystatechange = () => {
-					if (xhrRequest.readyState == XMLHttpRequest.DONE) {
-						resolve({
-							arrayBuffer: async () => xhrRequest.response || new ArrayBuffer(),
-							headers: { get: headerName => xhrRequest.getResponseHeader(headerName) },
-							status: xhrRequest.status
-						});
-					}
-				};
-				xhrRequest.open("GET", url, true);
-				if (options.headers) {
-					for (const entry of Object.entries(options.headers)) {
-						xhrRequest.setRequestHeader(entry[0], entry[1]);
-					}
-				}
-				xhrRequest.send();
-			});
-		}
-	});
-}
-
-exports.get = async options => {
-	let scripts = "let _singleFileDefine; if (typeof define !== 'undefined') { _singleFileDefine = define; define = null }";
-	scripts += await readScriptFiles(SCRIPTS, basePath);
-	scripts += await readScriptFiles(options && options.browserScripts ? options.browserScripts : [], "");
-	if (options.browserStylesheets && options.browserStylesheets.length) {
-		scripts += "addEventListener(\"load\",()=>{const styleElement=document.createElement(\"style\");styleElement.textContent=" + JSON.stringify(await readScriptFiles(options.browserStylesheets, "")) + ";document.body.appendChild(styleElement);});";
-	}
-	scripts += "if (_singleFileDefine) { define = _singleFileDefine; _singleFileDefine = null }";
-	scripts += "(" + initSingleFile.toString() + ")();";
-	return scripts;
-};
-
-exports.getInfobarScript = () => {
-	return readScriptFile("lib/single-file-infobar.js", basePath);
-};
-
-async function readScriptFiles(paths, basePath = "../../../") {
-	return (await Promise.all(paths.map(path => readScriptFile(path, basePath)))).join("");
-}
-
-function readScriptFile(path, basePath) {
-	return new Promise((resolve, reject) =>
-		fs.readFile(basePath ? require.resolve(basePath + path) : path, (err, data) => {
-			if (err) {
-				reject(err);
-			} else {
-				resolve(data.toString() + "\n");
-			}
-		})
-	);
-}
-
-/***/ }),
-
-/***/ 8733:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-/*
- * Copyright 2010-2020 Gildas Lormeau
- * contact : gildas.lormeau <at> gmail.com
- *
- * This file is part of SingleFile.
- *
- *   The code in this file is free software: you can redistribute it and/or
- *   modify it under the terms of the GNU Affero General Public License
- *   (GNU AGPL) as published by the Free Software Foundation, either version 3
- *   of the License, or (at your option) any later version.
- *
- *   The code in this file is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
- *   General Public License for more details.
- *
- *   As additional permission under GNU AGPL version 3 section 7, you may
- *   distribute UNMODIFIED VERSIONS OF THIS file without the copy of the GNU
- *   AGPL normally required by section 4, provided you include this license
- *   notice and a URL through which recipients can access the Corresponding
- *   Source.
- */
-
-/* global require, exports, URL */
-
-const fs = __nccwpck_require__(7147);
-const path = __nccwpck_require__(1017);
-const scripts = __nccwpck_require__(8465);
-const VALID_URL_TEST = /^(https?|file):\/\//;
-
-const DEFAULT_OPTIONS = {
-	localhost: true,
-	basePath: "",
-	removeHiddenElements: true,
-	removeUnusedStyles: true,
-	removeUnusedFonts: true,
-	removeFrames: false,
-	compressHTML: true,
-	compressCSS: false,
-	loadDeferredImages: true,
-	loadDeferredImagesMaxIdleTime: 1500,
-	loadDeferredImagesBlockCookies: false,
-	loadDeferredImagesBlockStorage: false,
-	loadDeferredImagesKeepZoomLevel: false,
-	loadDeferredImagesDispatchScrollEvent: false,
-	filenameTemplate: "{page-title} ({date-locale} {time-locale}).html",
-	infobarTemplate: "",
-	includeInfobar: false,
-	filenameMaxLength: 192,
-	filenameMaxLengthUnit: "bytes",
-	filenameReplacedCharacters: ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"],
-	filenameReplacementCharacter: "_",
-	maxResourceSizeEnabled: false,
-	maxResourceSize: 10,
-	backgroundSave: true,
-	removeAlternativeFonts: true,
-	removeAlternativeMedias: true,
-	removeAlternativeImages: true,
-	groupDuplicateImages: true,
-	saveRawPage: false,
-	resolveFragmentIdentifierURLs: false,
-	userScriptEnabled: false,
-	saveFavicon: true,
-	includeBOM: false,
-	insertMetaCSP: true,
-	insertMetaNoIndex: false,
-	insertSingleFileComment: true,
-	blockImages: false,
-	blockStylesheets: false,
-	blockFonts: false,
-	blockScripts: true,
-	blockVideos: true,
-	blockAudios: true
-};
-const STATE_PROCESSING = "processing";
-const STATE_PROCESSED = "processed";
-
-const backEnds = {
-	jsdom: "./back-ends/jsdom.js",
-	puppeteer: "./back-ends/puppeteer.js",
-	"puppeteer-firefox": "./back-ends/puppeteer-firefox.js",
-	"webdriver-chromium": "./back-ends/webdriver-chromium.js",
-	"webdriver-gecko": "./back-ends/webdriver-gecko.js",
-	"playwright-firefox": "./back-ends/playwright-firefox.js",
-	"playwright-chromium": "./back-ends/playwright-chromium.js"
-};
-
-let backend, tasks = [], maxParallelWorkers = 8, sessionFilename;
-
-exports.getBackEnd = backEndName => require(backEnds[backEndName]);
-exports.DEFAULT_OPTIONS = DEFAULT_OPTIONS;
-exports.VALID_URL_TEST = VALID_URL_TEST;
-exports.initialize = initialize;
-
-async function initialize(options) {
-	options = Object.assign({}, DEFAULT_OPTIONS, options);
-	maxParallelWorkers = options.maxParallelWorkers;
-	backend = require(backEnds[options.backEnd]);
-	await backend.initialize(options);
-	if (options.crawlSyncSession || options.crawlLoadSession) {
-		try {
-			tasks = JSON.parse(fs.readFileSync(options.crawlSyncSession || options.crawlLoadSession).toString());
-		} catch (error) {
-			if (options.crawlLoadSession) {
-				throw error;
-			}
-		}
-	}
-	if (options.crawlSyncSession || options.crawlSaveSession) {
-		sessionFilename = options.crawlSyncSession || options.crawlSaveSession;
-	}
-	return {
-		capture: urls => capture(urls, options),
-		finish: () => finish(options)
-	};
-}
-
-async function capture(urls, options) {
-	let newTasks;
-	const taskUrls = tasks.map(task => task.url);
-	newTasks = urls.map(url => createTask(url, options));
-	newTasks = newTasks.filter(task => task && !taskUrls.includes(task.url));
-	if (newTasks.length) {
-		tasks = tasks.concat(newTasks);
-		saveTasks();
-	}
-	await runTasks();
-}
-
-async function finish(options) {
-	const promiseTasks = tasks.map(task => task.promise);
-	await Promise.all(promiseTasks);
-	if (options.crawlReplaceURLs) {
-		tasks.forEach(task => {
-			try {
-				let pageContent = fs.readFileSync(task.filename).toString();
-				tasks.forEach(otherTask => {
-					if (otherTask.filename) {
-						pageContent = pageContent.replace(new RegExp(escapeRegExp("\"" + otherTask.originalUrl + "\""), "gi"), "\"" + otherTask.filename + "\"");
-						pageContent = pageContent.replace(new RegExp(escapeRegExp("'" + otherTask.originalUrl + "'"), "gi"), "'" + otherTask.filename + "'");
-						const filename = otherTask.filename.replace(/ /g, "%20");
-						pageContent = pageContent.replace(new RegExp(escapeRegExp("=" + otherTask.originalUrl + " "), "gi"), "=" + filename + " ");
-						pageContent = pageContent.replace(new RegExp(escapeRegExp("=" + otherTask.originalUrl + ">"), "gi"), "=" + filename + ">");
-					}
-				});
-				fs.writeFileSync(task.filename, pageContent);
-			} catch (error) {
-				// ignored
-			}
-		});
-	}
-	if (!options.browserDebug) {
-		return backend.closeBrowser();
-	}
-}
-
-async function runTasks() {
-	const availableTasks = tasks.filter(task => !task.status).length;
-	const processingTasks = tasks.filter(task => task.status == STATE_PROCESSING).length;
-	const promisesTasks = [];
-	for (let workerIndex = 0; workerIndex < Math.min(availableTasks, maxParallelWorkers - processingTasks); workerIndex++) {
-		promisesTasks.push(runNextTask());
-	}
-	return Promise.all(promisesTasks);
-}
-
-async function runNextTask() {
-	const task = tasks.find(task => !task.status);
-	if (task) {
-		const options = task.options;
-		let taskOptions = JSON.parse(JSON.stringify(options));
-		taskOptions.url = task.url;
-		task.status = STATE_PROCESSING;
-		saveTasks();
-		task.promise = capturePage(taskOptions);
-		const pageData = await task.promise;
-		task.status = STATE_PROCESSED;
-		if (pageData) {
-			task.filename = pageData.filename;
-			if (options.crawlLinks && testMaxDepth(task)) {
-				let newTasks = pageData.links
-					.map(urlLink => createTask(urlLink, options, task, tasks[0]))
-					.filter(task => task &&
-						testMaxDepth(task) &&
-						!tasks.find(otherTask => otherTask.url == task.url) &&
-						(!options.crawlInnerLinksOnly || task.isInnerLink) &&
-						(!options.crawlNoParent || (task.isChild || !task.isInnerLink)));
-				tasks.splice(tasks.length, 0, ...newTasks);
-			}
-		}
-		saveTasks();
-		await runTasks();
-	}
-}
-
-function testMaxDepth(task) {
-	const options = task.options;
-	return (options.crawlMaxDepth == 0 || task.depth <= options.crawlMaxDepth) &&
-		(options.crawlExternalLinksMaxDepth == 0 || task.externalLinkDepth < options.crawlExternalLinksMaxDepth);
-}
-
-function createTask(url, options, parentTask, rootTask) {
-	url = parentTask ? rewriteURL(url, options.crawlRemoveURLFragment, options.crawlRewriteRules) : url;
-	if (VALID_URL_TEST.test(url)) {
-		const isInnerLink = rootTask && url.startsWith(getHostURL(rootTask.url));
-		const rootBaseURIMatch = rootTask && rootTask.url.match(/(.*?)[^/]*$/);
-		const isChild = isInnerLink && rootBaseURIMatch && rootBaseURIMatch[1] && url.startsWith(rootBaseURIMatch[1]);
-		return {
-			url,
-			isInnerLink,
-			isChild,
-			originalUrl: url,
-			rootBaseURI: rootBaseURIMatch && rootBaseURIMatch[1],
-			depth: parentTask ? parentTask.depth + 1 : 0,
-			externalLinkDepth: isInnerLink ? -1 : parentTask ? parentTask.externalLinkDepth + 1 : -1,
-			options
-		};
-	}
-}
-
-function saveTasks() {
-	if (sessionFilename) {
-		fs.writeFileSync(sessionFilename, JSON.stringify(
-			tasks.map(task => Object.assign({}, task, {
-				status: task.status == STATE_PROCESSING ? undefined : task.status,
-				promise: undefined,
-				options: task.status && task.status == STATE_PROCESSED ? undefined : task.options
-			}))
-		));
-	}
-}
-
-function rewriteURL(url, crawlRemoveURLFragment, crawlRewriteRules) {
-	url = url.trim();
-	if (crawlRemoveURLFragment) {
-		url = url.replace(/^(.*?)#.*$/, "$1");
-	}
-	crawlRewriteRules.forEach(rewriteRule => {
-		const parts = rewriteRule.trim().split(/ +/);
-		if (parts.length) {
-			url = url.replace(new RegExp(parts[0]), parts[1] || "").trim();
-		}
-	});
-	return url;
-}
-
-function getHostURL(url) {
-	url = new URL(url);
-	return url.protocol + "//" + (url.username ? url.username + (url.password || "") + "@" : "") + url.hostname;
-}
-
-async function capturePage(options) {
-	try {
-		let filename;
-		const pageData = await backend.getPageData(options);
-		if (options.includeInfobar) {
-			await includeInfobarScript(pageData);
-		}
-		if (options.output) {
-			filename = getFilename(options.output, options);
-		} else if (options.dumpContent) {
-			console.log(pageData.content); // eslint-disable-line no-console
-		} else {
-			filename = getFilename(pageData.filename, options);
-		}
-		if (filename) {
-			const dirname = path.dirname(filename);
-			if (dirname) {
-				fs.mkdirSync(dirname, { recursive: true });
-			}
-			fs.writeFileSync(filename, pageData.content.replace('<head>', '<head><base target="_blank">'));
-		}
-		return pageData;
-	} catch (error) {
-		const message = "URL: " + options.url + "\nStack: " + error.stack + "\n";
-		if (options.errorFile) {
-			fs.writeFileSync(options.errorFile, message, { flag: "a" });
-		} else {
-			console.error(error.message || error, message); // eslint-disable-line no-console
-		}
-	}
-}
-
-function getFilename(filename, options, index = 1) {
-	if (Array.isArray(options.outputDirectory)) {
-		const outputDirectory = options.outputDirectory.pop();
-		if (outputDirectory.startsWith("/")) {
-			options.outputDirectory = outputDirectory;
-		} else {
-			options.outputDirectory = options.outputDirectory[0] + outputDirectory;
-		}
-	}
-	let outputDirectory = options.outputDirectory || "";
-	if (outputDirectory && !outputDirectory.endsWith("/")) {
-		outputDirectory += "/";
-	}
-	let newFilename = outputDirectory + filename;
-	if (options.filenameConflictAction == "overwrite") {
-		return filename;
-	} else if (options.filenameConflictAction == "uniquify" && index > 1) {
-		const regExpMatchExtension = /(\.[^.]+)$/;
-		const matchExtension = newFilename.match(regExpMatchExtension);
-		if (matchExtension && matchExtension[1]) {
-			newFilename = newFilename.replace(regExpMatchExtension, " (" + index + ")" + matchExtension[1]);
-		} else {
-			newFilename += " (" + index + ")";
-		}
-	}
-	if (fs.existsSync(newFilename)) {
-		if (options.filenameConflictAction != "skip") {
-			return getFilename(filename, options, index + 1);
-		}
-	} else {
-		return newFilename;
-	}
-}
-
-function escapeRegExp(string) {
-	return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-async function includeInfobarScript(pageData) {
-	const infobarContent = await scripts.getInfobarScript();
-	pageData.content += "<script>document.currentScript.remove();" + infobarContent + "</script>";
-}
-
-
-/***/ }),
-
 /***/ 4111:
 /***/ ((module) => {
 
@@ -39076,6 +38653,138 @@ exports.TextDecoder =
 
 /***/ }),
 
+/***/ 4207:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const isWindows = process.platform === 'win32' ||
+    process.env.OSTYPE === 'cygwin' ||
+    process.env.OSTYPE === 'msys'
+
+const path = __nccwpck_require__(1017)
+const COLON = isWindows ? ';' : ':'
+const isexe = __nccwpck_require__(7126)
+
+const getNotFoundError = (cmd) =>
+  Object.assign(new Error(`not found: ${cmd}`), { code: 'ENOENT' })
+
+const getPathInfo = (cmd, opt) => {
+  const colon = opt.colon || COLON
+
+  // If it has a slash, then we don't bother searching the pathenv.
+  // just check the file itself, and that's it.
+  const pathEnv = cmd.match(/\//) || isWindows && cmd.match(/\\/) ? ['']
+    : (
+      [
+        // windows always checks the cwd first
+        ...(isWindows ? [process.cwd()] : []),
+        ...(opt.path || process.env.PATH ||
+          /* istanbul ignore next: very unusual */ '').split(colon),
+      ]
+    )
+  const pathExtExe = isWindows
+    ? opt.pathExt || process.env.PATHEXT || '.EXE;.CMD;.BAT;.COM'
+    : ''
+  const pathExt = isWindows ? pathExtExe.split(colon) : ['']
+
+  if (isWindows) {
+    if (cmd.indexOf('.') !== -1 && pathExt[0] !== '')
+      pathExt.unshift('')
+  }
+
+  return {
+    pathEnv,
+    pathExt,
+    pathExtExe,
+  }
+}
+
+const which = (cmd, opt, cb) => {
+  if (typeof opt === 'function') {
+    cb = opt
+    opt = {}
+  }
+  if (!opt)
+    opt = {}
+
+  const { pathEnv, pathExt, pathExtExe } = getPathInfo(cmd, opt)
+  const found = []
+
+  const step = i => new Promise((resolve, reject) => {
+    if (i === pathEnv.length)
+      return opt.all && found.length ? resolve(found)
+        : reject(getNotFoundError(cmd))
+
+    const ppRaw = pathEnv[i]
+    const pathPart = /^".*"$/.test(ppRaw) ? ppRaw.slice(1, -1) : ppRaw
+
+    const pCmd = path.join(pathPart, cmd)
+    const p = !pathPart && /^\.[\\\/]/.test(cmd) ? cmd.slice(0, 2) + pCmd
+      : pCmd
+
+    resolve(subStep(p, i, 0))
+  })
+
+  const subStep = (p, i, ii) => new Promise((resolve, reject) => {
+    if (ii === pathExt.length)
+      return resolve(step(i + 1))
+    const ext = pathExt[ii]
+    isexe(p + ext, { pathExt: pathExtExe }, (er, is) => {
+      if (!er && is) {
+        if (opt.all)
+          found.push(p + ext)
+        else
+          return resolve(p + ext)
+      }
+      return resolve(subStep(p, i, ii + 1))
+    })
+  })
+
+  return cb ? step(0).then(res => cb(null, res), cb) : step(0)
+}
+
+const whichSync = (cmd, opt) => {
+  opt = opt || {}
+
+  const { pathEnv, pathExt, pathExtExe } = getPathInfo(cmd, opt)
+  const found = []
+
+  for (let i = 0; i < pathEnv.length; i ++) {
+    const ppRaw = pathEnv[i]
+    const pathPart = /^".*"$/.test(ppRaw) ? ppRaw.slice(1, -1) : ppRaw
+
+    const pCmd = path.join(pathPart, cmd)
+    const p = !pathPart && /^\.[\\\/]/.test(cmd) ? cmd.slice(0, 2) + pCmd
+      : pCmd
+
+    for (let j = 0; j < pathExt.length; j ++) {
+      const cur = p + pathExt[j]
+      try {
+        const is = isexe.sync(cur, { pathExt: pathExtExe })
+        if (is) {
+          if (opt.all)
+            found.push(cur)
+          else
+            return cur
+        }
+      } catch (ex) {}
+    }
+  }
+
+  if (opt.all && found.length)
+    return found
+
+  if (opt.nothrow)
+    return null
+
+  throw getNotFoundError(cmd)
+}
+
+module.exports = which
+which.sync = whichSync
+
+
+/***/ }),
+
 /***/ 2940:
 /***/ ((module) => {
 
@@ -39129,6 +38838,14 @@ module.exports = require("assert");
 
 "use strict";
 module.exports = require("buffer");
+
+/***/ }),
+
+/***/ 2081:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("child_process");
 
 /***/ }),
 
@@ -42191,6 +41908,197 @@ function parseLinkHeader (linkHeader, options) {
 
 exports.parseLinkHeader = parseLinkHeader;
 //# sourceMappingURL=index.cjs.map
+
+
+/***/ }),
+
+/***/ 6151:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", ({
+  value: true
+}));
+exports.promisifyChildProcess = promisifyChildProcess;
+exports.spawn = spawn;
+exports.fork = fork;
+exports.execFile = exports.exec = void 0;
+
+const child_process = __nccwpck_require__(2081);
+
+const bindFinally = promise => (handler // don't assume we're running in an environment with Promise.finally
+) => promise.then(async value => {
+  await handler();
+  return value;
+}, async reason => {
+  await handler();
+  throw reason;
+});
+
+function joinChunks(chunks, encoding) {
+  if (chunks[0] instanceof Buffer) {
+    const buffer = Buffer.concat(chunks);
+    if (encoding) return buffer.toString(encoding);
+    return buffer;
+  }
+
+  return chunks.join('');
+}
+
+function promisifyChildProcess(child, options = {}) {
+  const _promise = new Promise((resolve, reject) => {
+    const {
+      encoding,
+      killSignal
+    } = options;
+    const captureStdio = encoding != null || options.maxBuffer != null;
+    const maxBuffer = options.maxBuffer != null ? options.maxBuffer : 200 * 1024;
+    let error;
+    let bufferSize = 0;
+    const stdoutChunks = [];
+    const stderrChunks = [];
+
+    const capture = chunks => data => {
+      const remaining = Math.max(0, maxBuffer - bufferSize);
+      const byteLength = Buffer.byteLength(data, 'utf8');
+      bufferSize += Math.min(remaining, byteLength);
+
+      if (byteLength > remaining) {
+        error = new Error(`maxBuffer size exceeded`); // $FlowFixMe
+
+        child.kill(killSignal ? killSignal : 'SIGTERM');
+        data = data.slice(0, remaining);
+      }
+
+      chunks.push(data);
+    };
+
+    if (captureStdio) {
+      if (child.stdout) child.stdout.on('data', capture(stdoutChunks));
+      if (child.stderr) child.stderr.on('data', capture(stderrChunks));
+    }
+
+    child.on('error', reject);
+
+    function done(code, signal) {
+      if (!error) {
+        if (code != null && code !== 0) {
+          error = new Error(`Process exited with code ${code}`);
+        } else if (signal != null) {
+          error = new Error(`Process was killed with ${signal}`);
+        }
+      }
+
+      function defineOutputs(obj) {
+        obj.code = code;
+        obj.signal = signal;
+
+        if (captureStdio) {
+          obj.stdout = joinChunks(stdoutChunks, encoding);
+          obj.stderr = joinChunks(stderrChunks, encoding);
+        } else {
+          const warn = prop => ({
+            configurable: true,
+            enumerable: true,
+
+            get() {
+              /* eslint-disable no-console */
+              console.error(new Error(`To get ${prop} from a spawned or forked process, set the \`encoding\` or \`maxBuffer\` option`).stack.replace(/^Error/, 'Warning'));
+              /* eslint-enable no-console */
+
+              return null;
+            }
+
+          });
+
+          Object.defineProperties(obj, {
+            stdout: warn('stdout'),
+            stderr: warn('stderr')
+          });
+        }
+      }
+
+      const finalError = error;
+
+      if (finalError) {
+        defineOutputs(finalError);
+        reject(finalError);
+      } else {
+        const output = {};
+        defineOutputs(output);
+        resolve(output);
+      }
+    }
+
+    child.on('close', done);
+  });
+
+  return Object.create(child, {
+    then: {
+      value: _promise.then.bind(_promise)
+    },
+    catch: {
+      value: _promise.catch.bind(_promise)
+    },
+    finally: {
+      value: bindFinally(_promise)
+    }
+  });
+}
+
+function spawn(command, args, options) {
+  return promisifyChildProcess(child_process.spawn(command, args, options), Array.isArray(args) ? options : args);
+}
+
+function fork(module, args, options) {
+  return promisifyChildProcess(child_process.fork(module, args, options), Array.isArray(args) ? options : args);
+}
+
+function promisifyExecMethod(method) {
+  return (...args) => {
+    let child;
+
+    const _promise = new Promise((resolve, reject) => {
+      child = method(...args, (err, stdout, stderr) => {
+        if (err) {
+          err.stdout = stdout;
+          err.stderr = stderr;
+          reject(err);
+        } else {
+          resolve({
+            code: 0,
+            signal: null,
+            stdout,
+            stderr
+          });
+        }
+      });
+    });
+
+    if (!child) {
+      throw new Error('unexpected error: child has not been initialized');
+    }
+
+    return Object.create(child, {
+      then: {
+        value: _promise.then.bind(_promise)
+      },
+      catch: {
+        value: _promise.catch.bind(_promise)
+      },
+      finally: {
+        value: bindFinally(_promise)
+      }
+    });
+  };
+}
+
+const exec = promisifyExecMethod(child_process.exec);
+exports.exec = exec;
+const execFile = promisifyExecMethod(child_process.execFile);
+exports.execFile = execFile;
 
 
 /***/ }),
