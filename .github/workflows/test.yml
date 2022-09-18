@@ -1,26 +1,19 @@
-name: 'build-test'
-on: # rebuild any PRs and main branch changes
-  pull_request:
-  push:
-    branches:
-      - main
-      - 'releases/*'
-
+name: CI
+on: [workflow_dispatch]
 jobs:
-  build: # make sure build/ci work properly
+  installDependencies:
+    name: Install Dependencies
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: |
-          npm install
-      - run: |
-          npm run all
-  test: # make sure the action works on a clean machine without building
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./
+      - name: Install Dependencies
+        uses: actions/setup-node@v3
+        env:
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: 'true'
+      - run: npm install
+      - name: Test Code
+        uses: mujo-code/puppeteer-headful@v2
+        env:
+          CI: 'true'
         with:
-          web3_api: 'https://api-staging.web3.storage'
-          web3_token: ${{ secrets.WEB3_STORAGE_TOKEN }}
-          url: 'https://web3.storage'
+          args: 'npm run all'

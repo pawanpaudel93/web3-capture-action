@@ -166,7 +166,7 @@ export async function runBrowser({
     blockMixedContent: false,
     browserServer: '',
     browserHeadless: true,
-    browserExecutablePath: '',
+    browserExecutablePath: process.env.PUPPETEER_EXEC_PATH,
     browserWidth: 1280,
     browserHeight: 720,
     browserLoadMaxTime: 60000,
