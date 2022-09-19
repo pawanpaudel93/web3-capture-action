@@ -138,8 +138,9 @@ function run() {
                 const { contentID, title } = yield (0, archive_1.archiveUrl)(token, url, endpoint);
                 output.push({
                     title,
+                    url,
                     cid: contentID,
-                    url: `https://w3s.link/ipfs/${contentID}`,
+                    w3link: `https://w3s.link/ipfs/${contentID}`,
                     timestamp: new Date().toString()
                 });
             }

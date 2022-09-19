@@ -15,7 +15,6 @@ name: web3-capture-action
 on: [push]
 jobs:
   capture:
-    name: Install Google Chrome & Capture
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -31,7 +30,7 @@ jobs:
           chrome-version: stable
       - run: npm install https://github.com/pawanpaudel93/single-file-cli
       - name: Capture webpage and screenshot
-        uses: web3-capture-action@0.1
+        uses: pawanpaudel93/web3-capture-action@v0.1
         with:
           web3_token: ${{ secrets.WEB3_STORAGE_TOKEN }}
           url_file_path: 'urls.txt'
