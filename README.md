@@ -15,7 +15,6 @@ name: web3-capture-action
 on: [push]
 jobs:
   capture:
-    name: Install Google Chrome & Capture
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

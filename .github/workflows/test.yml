@@ -2,7 +2,6 @@ name: web3-capture-action
 on: [push]
 jobs:
   test:
-    name: Install Dependencies & Capture
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
