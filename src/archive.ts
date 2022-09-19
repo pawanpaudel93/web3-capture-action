@@ -1,38 +1,15 @@
 import fsPromises from 'node:fs/promises'
 import {resolve} from 'path'
-import * as core from '@actions/core'
 import {directory} from 'tempy'
 import {getFilesFromPath, Web3Storage} from 'web3.storage'
 import {Filelike} from 'web3.storage/src/lib/interface'
-
 import {execFile} from 'promisify-child-process'
-import which from 'which'
 
-type ReturnType = {
-  status: string
-  message: string
-  contentID: string
-  title: string
-}
+import {ReturnType, getBin} from './utils'
 
 const SINGLEFILE_EXECUTABLE = './node_modules/single-file-cli/single-file'
 const BROWSER_ARGS =
   '["--no-sandbox", "--window-size=1920,1080", "--start-maximized"]'
-
-function getBin(commands: string[]): string {
-  let bin = 'chrome'
-  let i: number
-  for (i = 0; i < commands.length; i++) {
-    try {
-      if (which.sync(commands[i])) {
-        bin = commands[i]
-        break
-      }
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
-  }
-  return bin
-}
 
 export const archiveUrl = async (
   token: string,
@@ -55,7 +32,6 @@ export const archiveUrl = async (
   ]
   const {stderr} = await execFile(SINGLEFILE_EXECUTABLE, command)
   if (stderr) {
-    core.info(stderr.toString())
     return {
       status: 'error',
       message: stderr.toString(),

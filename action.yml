@@ -5,13 +5,17 @@ inputs:
   web3_token:
     description: 'API token for web3.storage'
     required: true
+  url_file_path:
+    description: 'file containing urls lines to capture'
+    required: true
   web3_api:
     description: 'API URL'
     required: false
     default: 'https://api.web3.storage'
-  url:
-    description: 'url to save single page html and screenshot for.'
-    required: true
+  output_file_path:
+    description: 'json file to save the results'
+    required: false
+    default: 'saved.json'
 runs:
   using: 'node16'
   main: 'dist/index.js'

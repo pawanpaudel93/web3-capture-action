@@ -1,7 +1,7 @@
-name: CI
+name: web3-capture-action
 on: [push]
 jobs:
-  installAndCapture:
+  test:
     name: Install Dependencies & Capture
     runs-on: ubuntu-latest
     steps:
@@ -11,15 +11,14 @@ jobs:
       - run: |
           sudo apt-get update
           sudo apt-get install -y libgconf-2-4 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 libgbm-dev libnss3-dev libxss-dev libasound2
-      - uses: browser-actions/setup-chrome@latest
+      - name: Install Google Chrome
+        uses: browser-actions/setup-chrome@latest
         with:
           chrome-version: stable
-      - run: |
-          npm install
-          npm run build
-          npm run package
-      - uses: ./
+      - run: npm install https://github.com/pawanpaudel93/single-file-cli
+      - name: Capture webpage and screenshot
+        uses: ./
         with:
           web3_api: 'https://api-staging.web3.storage'
           web3_token: ${{ secrets.WEB3_STORAGE_TOKEN }}
-          url: 'https://web3.storage'
+          url_file_path: 'urls.txt'

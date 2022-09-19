@@ -6,29 +6,6 @@ require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 
 "use strict";
 
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -45,32 +22,16 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.archiveUrl = void 0;
 const promises_1 = __importDefault(__nccwpck_require__(3977));
 const path_1 = __nccwpck_require__(1017);
-const core = __importStar(__nccwpck_require__(2186));
 const tempy_1 = __nccwpck_require__(4768);
 const web3_storage_1 = __nccwpck_require__(8272);
 const promisify_child_process_1 = __nccwpck_require__(6151);
-const which_1 = __importDefault(__nccwpck_require__(4207));
+const utils_1 = __nccwpck_require__(918);
 const SINGLEFILE_EXECUTABLE = './node_modules/single-file-cli/single-file';
 const BROWSER_ARGS = '["--no-sandbox", "--window-size=1920,1080", "--start-maximized"]';
-function getBin(commands) {
-    let bin = 'chrome';
-    let i;
-    for (i = 0; i < commands.length; i++) {
-        try {
-            if (which_1.default.sync(commands[i])) {
-                bin = commands[i];
-                break;
-            }
-            // eslint-disable-next-line no-empty
-        }
-        catch (e) { }
-    }
-    return bin;
-}
 const archiveUrl = (token, url, endpoint) => __awaiter(void 0, void 0, void 0, function* () {
     const tempDirectory = (0, tempy_1.directory)();
     const command = [
-        `--browser-executable-path=${getBin([
+        `--browser-executable-path=${(0, utils_1.getBin)([
             'google-chrome',
             'google-chrome-stable',
             'chrome'
@@ -83,7 +44,6 @@ const archiveUrl = (token, url, endpoint) => __awaiter(void 0, void 0, void 0, f
     ];
     const { stderr } = yield (0, promisify_child_process_1.execFile)(SINGLEFILE_EXECUTABLE, command);
     if (stderr) {
-        core.info(stderr.toString());
         return {
             status: 'error',
             message: stderr.toString(),
@@ -153,21 +113,48 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const archive_1 = __nccwpck_require__(9859);
+const promises_1 = __importDefault(__nccwpck_require__(3292));
+const utils_1 = __nccwpck_require__(918);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const token = core.getInput('web3_token');
-            const url = core.getInput('url');
+            const url_path = core.getInput('url_file_path');
+            const output_path = core.getInput('output_file_path') || 'saved.json';
+            const output = [];
+            const urls = (yield promises_1.default.readFile(url_path))
+                .toString()
+                .trim()
+                .split('\n');
             const endpoint = new URL(core.getInput('web3_api'));
-            const { contentID, title } = yield (0, archive_1.archiveUrl)(token, url, endpoint);
-            const ipfsUrl = `https://w3s.link/ipfs/${contentID}`;
-            core.info(ipfsUrl);
-            core.setOutput('cid', contentID);
-            core.setOutput('title', title);
-            core.setOutput('url', ipfsUrl);
+            for (let url of urls) {
+                url = url.trim();
+                const { contentID, title } = yield (0, archive_1.archiveUrl)(token, url, endpoint);
+                output.push({
+                    title,
+                    cid: contentID,
+                    url: `https://w3s.link/ipfs/${contentID}`,
+                    timestamp: new Date().toString()
+                });
+            }
+            const outputToSave = JSON.stringify(output, null, 2);
+            if (!(yield (0, utils_1.checkFileExists)(output_path))) {
+                yield promises_1.default.writeFile(output_path, outputToSave);
+            }
+            else {
+                const fileContent = yield promises_1.default.readFile(output_path);
+                let savedUrls = JSON.parse(fileContent.toString() || '[]');
+                savedUrls = [...savedUrls, ...output];
+                yield promises_1.default.writeFile(output_path, JSON.stringify(savedUrls, null, 2));
+            }
+            core.info(outputToSave);
+            core.setOutput('output', outputToSave);
         }
         catch (error) {
             if (error instanceof Error)
@@ -176,6 +163,60 @@ function run() {
     });
 }
 run();
+
+
+/***/ }),
+
+/***/ 918:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getBin = exports.checkFileExists = void 0;
+const promises_1 = __importDefault(__nccwpck_require__(3292));
+const fs_1 = __importDefault(__nccwpck_require__(7147));
+const which_1 = __importDefault(__nccwpck_require__(4207));
+function checkFileExists(file) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            yield promises_1.default.access(file, fs_1.default.constants.F_OK);
+            return true;
+        }
+        catch (error) {
+            return false;
+        }
+    });
+}
+exports.checkFileExists = checkFileExists;
+function getBin(commands) {
+    let bin = 'chrome';
+    let i;
+    for (i = 0; i < commands.length; i++) {
+        try {
+            if (which_1.default.sync(commands[i])) {
+                bin = commands[i];
+                break;
+            }
+            // eslint-disable-next-line no-empty
+        }
+        catch (e) { }
+    }
+    return bin;
+}
+exports.getBin = getBin;
 
 
 /***/ }),
@@ -38878,6 +38919,14 @@ module.exports = require("events");
 
 "use strict";
 module.exports = require("fs");
+
+/***/ }),
+
+/***/ 3292:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("fs/promises");
 
 /***/ }),
 
