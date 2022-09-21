@@ -27,12 +27,15 @@
   "dependencies": {
     "@actions/core": "^1.6.0",
     "dotenv": "^16.0.2",
+    "glob": "^8.0.3",
+    "moralis": "^2.5.3",
     "promisify-child-process": "^4.1.1",
     "tempy": "^1.0.1",
     "web3.storage": "^4.4.0",
     "which": "^2.0.2"
   },
   "devDependencies": {
+    "@types/glob": "^8.0.0",
     "@types/node": "^18.7.18",
     "@types/which": "^2.0.1",
     "@typescript-eslint/parser": "^5.8.1",

@@ -10,6 +10,7 @@ test('test runs', () => {
   process.env.INPUT_URL_FILE_PATH = path
     .join(__dirname, '..', 'urls.txt')
     .toString()
+  process.env.INPUT_SERVICE = 'web3.storage'
 
   const np = process.execPath
   const ip = path.join(__dirname, '..', 'lib', 'main.js')

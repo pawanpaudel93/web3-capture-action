@@ -1,9 +1,13 @@
 import fsPromises from 'node:fs/promises'
-import {resolve} from 'path'
 import {directory} from 'tempy'
 import {getFilesFromPath, Web3Storage} from 'web3.storage'
 import {Filelike} from 'web3.storage/src/lib/interface'
 import {execFile} from 'promisify-child-process'
+
+import Moralis from 'moralis'
+import glob from 'glob'
+import path from 'path'
+import fs from 'fs'
 
 import {ReturnType, getBin} from './utils'
 
@@ -14,8 +18,10 @@ const BROWSER_ARGS =
 export const archiveUrl = async (
   token: string,
   url: string,
-  endpoint: URL
+  endpoint: URL,
+  service: string
 ): Promise<ReturnType> => {
+  let cid = ''
   const tempDirectory = directory()
 
   const command = [
@@ -26,7 +32,7 @@ export const archiveUrl = async (
     ])}`,
     `--browser-args='${BROWSER_ARGS}'`,
     url,
-    `--output=${resolve(tempDirectory, 'index.html')}`,
+    `--output=${path.resolve(tempDirectory, 'index.html')}`,
     `--base-path=${tempDirectory}`,
     `--localhost=${!process.env.AWS_LAMBDA_FUNCTION_VERSION}`
   ]
@@ -39,24 +45,42 @@ export const archiveUrl = async (
       title: ''
     }
   }
-  const client = new Web3Storage({
-    token,
-    endpoint
-  })
-  const files = await getFilesFromPath(tempDirectory)
-  // console.log(files);
-  const cid = await client.put(files as Iterable<Filelike>, {
-    wrapWithDirectory: false,
-    maxRetries: 3
-  })
+  if (service === 'web3.storage') {
+    const client = new Web3Storage({
+      token,
+      endpoint
+    })
+    const files = await getFilesFromPath(tempDirectory)
+    // console.log(files);
+    cid = await client.put(files as Iterable<Filelike>, {
+      wrapWithDirectory: false,
+      maxRetries: 3
+    })
+  } else {
+    const files = glob.sync(path.join(tempDirectory, `/**/*.*`), {
+      nodir: true
+    })
+    const abi = files.map(filePath => ({
+      path: filePath.replace(path.join(tempDirectory, '/').toString(), ''),
+      content: fs.readFileSync(filePath, {encoding: 'base64'})
+    }))
+    await Moralis.start({
+      apiKey: token
+    })
+
+    const response = await Moralis.EvmApi.ipfs.uploadFolder({
+      abi
+    })
+    cid = response?.result[0].path.match('/ipfs/(.*?)/')?.[1] as string
+  }
   const data = (
-    await fsPromises.readFile(resolve(tempDirectory, 'metadata.json'))
+    await fsPromises.readFile(path.resolve(tempDirectory, 'metadata.json'))
   ).toString()
   const {title} = JSON.parse(data)
   await fsPromises.rm(tempDirectory, {recursive: true, force: true})
   return {
     status: 'success',
-    message: 'Uploaded to Web3.Storage!',
+    message: `Uploaded to ${service}!`,
     contentID: cid,
     title
   }

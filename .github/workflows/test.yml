@@ -21,3 +21,4 @@ jobs:
           web3_api: 'https://api-staging.web3.storage'
           web3_token: ${{ secrets.WEB3_STORAGE_TOKEN }}
           url_file_path: 'urls.txt'
+          service: 'web3.storage'

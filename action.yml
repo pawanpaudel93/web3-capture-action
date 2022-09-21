@@ -3,7 +3,10 @@ description: 'Save single page html and screenshot of url'
 author: 'pawanpaudel93'
 inputs:
   web3_token:
-    description: 'API token for web3.storage'
+    description: 'API token for web3.storage or moralis'
+    required: true
+  service:
+    description: 'Upload using web3.storage or moralis'
     required: true
   url_file_path:
     description: 'file containing urls lines to capture'

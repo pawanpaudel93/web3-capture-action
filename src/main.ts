@@ -8,6 +8,7 @@ async function run(): Promise<void> {
     const token = core.getInput('web3_token')
     const url_path = core.getInput('url_file_path')
     const output_path = core.getInput('output_file_path') || 'saved.json'
+    const service = core.getInput('service')
     const output: OutputType[] = []
     const urls = (await fsPromises.readFile(url_path))
       .toString()
@@ -16,7 +17,7 @@ async function run(): Promise<void> {
     const endpoint = new URL(core.getInput('web3_api'))
     for (let url of urls) {
       url = url.trim()
-      const {contentID, title} = await archiveUrl(token, url, endpoint)
+      const {contentID, title} = await archiveUrl(token, url, endpoint, service)
       output.push({
         title,
         url,
