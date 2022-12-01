@@ -28,7 +28,7 @@
     "@actions/core": "^1.6.0",
     "dotenv": "^16.0.2",
     "glob": "^8.0.3",
-    "moralis": "^2.5.3",
+    "moralis": "^2.8.2",
     "promisify-child-process": "^4.1.1",
     "tempy": "^1.0.1",
     "web3.storage": "^4.4.0",
